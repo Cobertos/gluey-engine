@@ -6,7 +6,7 @@
     "url": "http://cobertos.com"
   },
   "scripts": {
-    "docs": "jsdoc2md -f src/*.js > docs/core.md && jsdoc2md -f src/physics/*.js > docs/physics.md && jsdoc2md -f src/network/*.js > docs/network.md",
+    "docs": "node -r esm docs.js",
     "test": "mocha -r esm test/*.js"
   },
   "private": "true",
