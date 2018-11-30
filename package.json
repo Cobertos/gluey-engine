@@ -1,0 +1,31 @@
+{
+  "name": "jammin-js",
+  "author": {
+    "name": "Fucko",
+    "email": "fucko@gmail.com",
+    "url": "http://cobertos.com"
+  },
+  "scripts": {
+    "docs": "jsdoc2md -f src/*.js > docs/core.md && jsdoc2md -f src/physics/*.js > docs/physics.md && jsdoc2md -f src/network/*.js > docs/network.md",
+    "test": "mocha -r esm test/*.js"
+  },
+  "private": "true",
+  "version": "1.0.0",
+  "description": "Gmae.",
+  "dependencies": {
+    "aggregation": "^1.2.2",
+    "moment": "^2.22.1",
+    "oimo": "^1.0.9",
+    "stats.js": "^0.17.0",
+    "three": "^0.96.0",
+    "wolfy87-eventemitter": "^5.2.5",
+    "ws": "^6.0.0"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "esm": "^3.0.84",
+    "jsdoc-to-markdown": "^4.0.1",
+    "mocha": "^5.2.0",
+    "sinon": "^7.0.0"
+  }
+}
