@@ -1,27 +1,24 @@
 import * as THREE from "three";
 import { BasePart } from "../BasePart";
 
-/**Part that will add the object to the physics engine.
- * @prop linearVelocity {THREE.Vector3} Current linear velocity
- * @prop angularVelocity {THREE.Vector3} Current angular velocity
- * @todo Objects with multiple layers of Physics object will probably
- * act really weird
- * @todo This will not work if added as a child to another object. It
- * will only work if added to a SimScene (this requires a larger discussion
- * about functionality and how it relates to a Scene...)
+/**Part that allows an object to participate in Oimo.js physics
  */
 export class PhysicsPart extends BasePart {
   get supportsPhysics() { return true; }
 
   initializer() { //aggregation constructor
     //Extra parameters from physics simulation
+    /**@prop {THREE.Vector3} linearVelocity Current linear velocity*/
     this.linearVelocity = new THREE.Vector3(0,0,0);
+    /**@prop {THREE.Vector3} angularVelocity Current angular velocity*/
     this.angularVelocity = new THREE.Vector3(0,0,0);
 
-    //gets sent to the physics engine on added to scene
+    //object added to physics system by the physics scene part
+    //when it is registed
   }
 
-  /**Dirties this physics object
+  /**Flags different parts of this object dirty in the physics simulation
+   * and sends a message to the physics engine to update it
    * @param {boolean} [dirtyPos=true] Dirty the position
    * @param {boolean} [dirtyRot=true] Dirty the rotation
    * @param {boolean} [dirtyVel=true] Dirty the linear velocity
@@ -35,10 +32,12 @@ export class PhysicsPart extends BasePart {
     this.scene.phys_set(params, dirtyPos, dirtyRot, dirtyVel, dirtyAngVel);
   }
 
-  /**Adds a force to the object in the next physics frame
+  /**Adds a force/impulse to the object in the next physics frame
    * @param {THREE.Vector3} force The force to apply, mass dependant
-   * @param {THREE.Vector3} [pos=undefined] The position to apply it from in
+   * @param {THREE.Vector3} [pos=this.getPhysicsParams().pos] The position to apply it from in
    * world coordinates. Will use the current position if undefined
+   * @todo Mass is currently uneditable, but it is calculated based on the shapes
+   * passed (their volume) and a .massInfo object (their density).
    */
   impulse(force, pos=undefined) {
     this.scene.phys_impulse(this.getPhysicsParams(), 
@@ -46,15 +45,31 @@ export class PhysicsPart extends BasePart {
       force.toArray());
   }
 
-  /**Get the physics parameters from the three.js/SimObject. Takes properties
-   * that get passed to the physics object constructor. Inherit this and
-   * Object.assign({}) your new properties to set the `type` (shape) and
-   * `kinematic`, `neverSleep`, `move`, and any other OIMO parameters.
-   * See OIMOjsInternals.md for more info...
-   * @returns {object} physic parameters object. Can have any SIMPLE js properties
-   * b/c is has to cross a webworker barrier (no custom classes or functions, only plain
-   * objects). THREE.Vector2,3,4 will be converted if pos, rot, vel, and angVel to arrays
-   * and then back to OIMO vectors in the worker.
+  /**Returns the physics parameters for the `SimObject`. By default it
+   * will return:
+   * * `.id` - ID in the physics simulation, uses THREE.js `.uuid` by default
+   * * `.pos` - Position in physics simulation, uses THREE.js `.position` by default
+   * * `.size` - Size of the shape, uses THREE.js `.boundingBox.getSize()` by default
+   * * `.rot` - Quat of the shape, uses THREE.js `.quaternion` by default
+   * * `.vel` - Linear velocity, uses `.linearVelocity` by default
+   * * `.angVel` - Angular velocity, uses `.angularVelocity` by default
+   * 
+   * There is no default for some properties and you need to add them yourself:
+   * * `.type` - The shape type, see `OIMOjsInternals.md`
+   * * `.kinematic` - Static unless moved by a script
+   * * `.move` - Participates in freeform physics
+   * * `.static` - ALWAYS STATIC. Moving it will result in an error
+   * * `.neverSleep` - Always awake (currently required to make it always fire
+   *     `onPhysicsTick()` every frame)
+   *
+   * It might be useful to inherit from this function and `super()` call it.
+   *
+   * These are all sent to the `Worker` so anything in `world.add()` in `Oimo.js`
+   * can be used/returned. If you pass something that isn't a scalar (custom classes
+   * or functions), it will most likely error (because it's going to another `Worker`).
+   * Check `OIMOjsInternals.md` and the `Oimo.js` documentation for more information
+   * on this stuff.
+   * @returns {object} physic parameters object.
    */
   getPhysicsParams() {
     let geo = this.geometry;
@@ -73,8 +88,6 @@ export class PhysicsPart extends BasePart {
       rot: this.quaternion.toArray(),
       vel: this.linearVelocity.toArray(),
       angVel: this.angularVelocity.toArray()
-
-      //See OIMOjsInternals.md for more info
     };
   }
 }

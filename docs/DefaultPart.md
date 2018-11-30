@@ -1,6 +1,6 @@
 <a name="DefaultPart"></a>
 
 ## DefaultPart
-Do not inherit from this. Use BasePart instead
+By default mixed into every `SimObjectInheritor`. Do NOT inherit from this,inherit from `BasePart` instead.
 
 **Kind**: global class  

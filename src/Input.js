@@ -1,25 +1,22 @@
 import { _assert } from "./utils.js";
 
-/**Stateful input class handler
- * @prop {object} bindings Action labels to keys for those actions
- * @prop {object} reverseBindings Keys on the keyboard and what action they're mapped to
- */
+/**Stateful class that handles Inputs and bindings to keys*/
 export class Input {
-  /**
-   * @param {object} bindings An object of labels ("up", "down", "fire"), mapped to
+  /**@param {object} bindings An object of labels ("up", "down", "fire"), mapped to
    * keys ("a", "Z", "$")
    */
   constructor(bindings){
     _assert(typeof bindings === "object", "Bindings must be an object!");
+    /**@prop {object} bindings An object of labels ("up", "down", "fire"), mapped to
+     * keys ("a", "Z", "$")
+     */
     this.bindings = bindings;
     this._reverseBindings = undefined;
 
     this.keyValues = {};
   }
 
-  /**
-   * @returns {object} Returns an object that is keys mapped to labels (the reverse of
-   * the bindings in the constructor
+  /**@prop {object} reverseBindings Keys mapped to labels (reverse of `.bindings`)
    */
   get reverseBindings() {
     if(!this._reverseBindings) {
@@ -34,17 +31,17 @@ export class Input {
     return this._reverseBindings;
   }
 
-  /**Given a binding name, returns the current value of that input
-   * @param {string} bind The name of the binding to retrieve the value for
-   * @returns {any} The value for that binding (key down or up for now)
+  /**Returns the current value for a binding name
+   * @param {string} bind Name of the binding to get the value of
+   * @returns {any} Value for that binding
    */
   getInput(bind){
     return this.keyValues[this.bindings[bind]];
   }
 
-  /**Given a key id, sets the value to the given value
-   * @param {string} key The key to set the value for keyCode.key
-   * @param {any} val The value to set
+  /**Sets the current value for a key
+   * @param {string} key Key to set the value for `keyCode.key`
+   * @param {any} val Value to set
    */
   _setInput(key, val){
     this.keyValues[key] = val;

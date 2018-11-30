@@ -3,13 +3,17 @@ import aggregation from "aggregation";
 import { BasePart } from "./BasePart";
 import { _assert } from "./utils";
 
-/**Factory function for creating the base class for SimObjects of different
- * THREE.js classes
- * @param {function} THREE.Object3D constructor (like THREE.Mesh)
- * @param {...function} partClss Vararg for all the other classes to
- * mixin into the new THREE.js class.
- * @returns {function} The new SimObject base class to inherit from. Use like
- * `class XXX extends SimObject(THREE.Mesh, PhysicsPart) {}`
+/**Function that returns `SimObjectInheritor`, the main class in JamminJS.
+ * Inherits from a THREE.js class and then multiple `BasePart` inheriting
+ * classes to add functionality like physics or networking.
+ * @example
+ * class MyObjectType extends SimObject(THREE.Mesh,PhysicsPart) {
+ *    //This class would be a THREE.Mesh and would participate in
+ *    //the physics system if your SimScene supports that
+ * }
+ * @param {function} threeCls a `THREE.Object3D` constructor (like `THREE.Mesh`)
+ * @param {...function} partClss Vararg for all the other classes to mixin.
+ * @returns {function} The new `SimObject` base class to inherit from.
  * @todo Some of the add() remove() functions won't work without overwriting the THREE.js prototype
  * for this stuff
  */
@@ -18,41 +22,45 @@ export function SimObject(threeCls, ...partClss) {
           threeCls.prototype === THREE.Object3D.prototype, "Must inherit from THREE.Object3D or descendant");
   partClss = [DefaultPart, ...partClss];
 
-  /**THREE.Object3D inherittor + any additionally inheritted parts passed from
-   * the called
+  /**The actual class created by `SimObject()`, inherits from
+   * `aggregation(threeCls, ...partClss)` and the prototype chain
+   * will include the `THREE.Object3D` (everything else is just mixed in)
    * @extends THREE.Object3D
    */
-  const cls = class _SimObject extends aggregation(threeCls, ...partClss) {
+  class SimObjectInheritor extends aggregation(threeCls, ...partClss) {
+    /**@param {...any} Vararg of args to pass to THREE.js constructor
+     */
     constructor(...args){
       super(...args);
       this.partClss = partClss;
       setTimeout(this.finishConstruction.bind(this)); //The next javascript frame, call this
     }
 
-    /**You must call this after the class is defined if one of your
-     * mixed in parts has a onDefined callback (like the NetworkPart)
+    /**You **MUST** call this after the class is defined if one of your
+     * mixed in parts has a `onDefined` callback (like the `NetworkPart`)
+     * to post-process the functions in that class.
+     * @todo Enforce this with an assert
      */
     static finishDefinition() {
       this._partApplyStatic("onDefined");
     }
 
-    /**You must call this after construction finishes to properly setup
+    /**You **MUST** call this after construction finishes to properly setup
      * things.
      * @todo Add an assert if this isn't called
-     * @todo Is the setTimeout above enough?
-     * @todo Remove duplication of _partClss functionality
-     * and call finishDefinition on event SimObject (refactor)
+     * @todo Is the `setTimeout` above enough?
+     * @todo Remove duplication of `_partClss` functionality
+     * and call `finishDefinition` on event SimObject (refactor)
      */
     finishConstruction() {
       this._partApply("onConstructed");
     }
 
-    /**Calls function.apply() for every part that has func.
-     * Only necessary when multiple parts define the same
-     * function where they would otherwise overwrite each other
-     * in the aggregation() process
-     * @param {string} func The function name to call
-     * @param {any[]} args The arguments to call with
+    /**For every mixed in part class, calls `partCls[func].apply(this, args)`
+     * statically, allowing for all parts to get notified of a class event through
+     * exposing hooks, like `onDefined`.
+     * @param {string} func Function name to call
+     * @param {any[]} args Arguments to call with
      */
     static _partApplyStatic(func, args) {
       partClss.forEach((partCls)=>{
@@ -61,6 +69,12 @@ export function SimObject(threeCls, ...partClss) {
         }
       });
     }
+    /**For every mixed in part, calls `part[func].apply(this, args)` allowing
+     * all parts to get notified of an instance event through exposing hooks, like
+     * `onConstructed`
+     * @param {string} func Function name to call
+     * @param {any[]} args Arguments to call with
+     */
     _partApply(func, args) {
       //Fail fast if we don't have it mixed in b/c it should be in here from aggregation
       if(typeof this[func] !== "function") {
@@ -73,13 +87,14 @@ export function SimObject(threeCls, ...partClss) {
       });
     }
 
-    /**Override for add.
-     * @param {THREE.Object3D|SimObject} ...objs Objects
+    /**@override
+     * @param {THREE.Object3D|SimObject} ...objs Objects to add
      * @returns {undefined} Nothing
      */
     add(...objs) {
       objs.forEach((obj)=>{
-        //Don't call with ...objs as it will call .add() for each one again
+        //Don't call with ...objs as three.js will call .add()
+        //for every object again
         super.add(obj);
         if(this.scene && typeof this.scene.register === "function") {
           obj.traverse((obj)=>{
@@ -91,7 +106,7 @@ export function SimObject(threeCls, ...partClss) {
       });
     }
 
-    /**Override for remove
+    /**@override
      * @param {THREE.Object3D|SimObject} ...objs Objects
      * @returns {undefined} Nothing
      * @todo You might have issues removing things added in add()
@@ -111,23 +126,24 @@ export function SimObject(threeCls, ...partClss) {
             this.scene.unregister(obj);
           });
         }
-        //Don't call with ...objs as it will call .remove() for each one again
+        //Don't call with ...objs as three.js will call .remove()
+        //for every object again
         super.remove(obj);
       });
     }
 
-    /**Gets the scene
-     * @prop scene
+    /**@prop {SimScene} Root scene this object is attached to, if any
      */
     get scene() {
       return this.parent && this.parent.scene;
     }
   }
 
-  return cls;
+  return SimObjectInheritor;
 }
 
-/**Do not inherit from this. Use BasePart instead
+/**By default mixed into every `SimObjectInheritor`. Do NOT inherit from this,
+ * inherit from `BasePart` instead.
  */
 export class DefaultPart extends BasePart {
   onConstructed(){

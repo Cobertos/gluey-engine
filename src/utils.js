@@ -1,6 +1,11 @@
 import * as THREE from "three";
 
+/**Wraps a `Promise` to externalize `resolve` and `reject`.
+ */
 export class PromiseProxy {
+  /**@param {Promise} initialPromise Promise to proxy
+   * right at the start
+   */
   constructor(initialPromise) {
     let externalResolve, externalReject;
     let p = new Promise((res, rej)=>{
@@ -22,8 +27,21 @@ export class PromiseProxy {
 
     return p;
   }
+
+  /**Resolves the `Promise`
+   * @method externalResolve
+   */
+  /**Rejects the `Promise`
+   * @method externalReject
+   */
+  /**Makes this `PromiseProxy` take the state of the passed `Promise`
+   * @method proxy
+   * @param {Promise} externalPromise `Promise` to proxy
+   */
 }
 
+/**Assertion helper, custom message and error type
+ */
 export function _assert(condition, message="Assertion Error", error=Error) {
   if(!condition) {
     throw new error(message);
@@ -45,18 +63,3 @@ export const conversions = {
     return v2;
   }
 };
-
-/**Correlary to JQuery's $.parseHTML for plain js
- * @param {string} The HTML to convert to elements
- * @returns {DocumentFragment} A document fragment that can be
- * added directly to DOM with appendChild
- */
-export function parseHTML(str) {
-  let parser = new DOMParser(),
-  doc = parser.parseFromString(str, "text/html"),
-  documentFragment = document.createDocumentFragment();
-  Array.from(doc.body.children).forEach((el)=>{
-    documentFragment.appendChild(el);
-  });
-  return documentFragment;
-}

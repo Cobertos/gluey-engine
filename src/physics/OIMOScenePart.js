@@ -3,8 +3,7 @@ const Worker = eval('require')("worker_threads").Worker;
 /// #endif
 import { PromiseProxy } from "../utils";
 
-/**Encapsulates an OIMOWorker and all the object communications with it
- * @todo The getInfo() doesn't actually work Im pretty sure
+/**Wrapper around `OIMOWorker` and all it's communication
  */
 export class OIMOScenePart {
     initializer() {
@@ -24,14 +23,23 @@ export class OIMOScenePart {
         this._lastFPS = 0;
 
         this._loadInterval = setInterval(()=>{
+            //We post messages until the worker loads, because we can't reliably
+            //determine otherwise when it does which breaks things at the start
+            //of the level otherwise
             this._worker.postMessage({ command: "loadbeat" });
         }, 100);
     }
 
+    /**@returns {Promise} Promise when the Worker has finished loading
+     */
     async load() {
         await this._workerPromise;
     }
 
+    /**Called after a physics simulation frame. Unserializes all the data from the
+     * byte array in the same way it was packed
+     * @param msg The message from the Worker
+     */
     onMessage(msg) {
         /// #if BROWSER
         msg = msg.data;
@@ -77,9 +85,10 @@ export class OIMOScenePart {
     }
 
     /**Adds a physics object with the given params, optionally taking
-     * a THREE.js object to update with the created rigidbody
-     * @param {object} physObj Object with physics parametets
-     * @param {THREE.Object3D} [threeObj=undefined] THREE.js update to update
+     * a THREE.js object to keep up to date with the physics object.
+     * @param {object} physObj Object with physics parameters
+     * @param {THREE.Object3D} [threeObj=undefined] THREE.js object to update
+     * (normally the object that generated the physObj)
      */
     phys_add(physObj, threeObj=undefined) {
         this._objects[physObj.id] = threeObj;
@@ -87,16 +96,13 @@ export class OIMOScenePart {
         this._worker.postMessage({
             command: "add",
             id: physObj.id,
-            //pos, array of vec3
-            //size, array of vec3
-            //rot, array of vec4 (its a quat)
             data: physObj
         });
     }
 
-    /**Given a physics object, will set a new position
-     * and optionally rotation
-     * @param {object} physObj The physics object with id with new pos and rot
+    /**Given a physics object will conditionally set pos, rot, velocity,
+     * and/or angular velocity 
+     * @param {object} physObj Physics parameters with the new data and .id
      * @param {boolean} [setPos=true] Conditionally set pos of data
      * @param {boolean} [setRot=true] Conditionally set rot of data
      * @param {boolean} [setVel=false] Conditionally set linear velocity
@@ -111,7 +117,7 @@ export class OIMOScenePart {
     }
 
     /**Deletes the given physics object from the simulation
-     * @param {object} physObj The physics object to delete
+     * @param {object} physObj The physics object to delete (.id)
      */
     phys_del(physObj) {
         this._worker.postMessage({
@@ -122,7 +128,7 @@ export class OIMOScenePart {
     }
 
     /**Applies impulse
-     * @param {object} physObj The physics object to apply to
+     * @param {object} physObj The physics object to apply to (.id)
      * @param {Number[]} pos Three component array, the position to apply to
      * @param {Number[]} force Three component array, the force to apply, will be scaled by 1/m
      */

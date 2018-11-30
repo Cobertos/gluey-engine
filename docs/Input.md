@@ -1,20 +1,14 @@
 <a name="Input"></a>
 
 ## Input
-Stateful input class handler
+Stateful class that handles Inputs and bindings to keys
 
 **Kind**: global class  
-**Properties**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| bindings | <code>object</code> | Action labels to keys for those actions |
-| reverseBindings | <code>object</code> | Keys on the keyboard and what action they're mapped to |
-
 
 * [Input](#Input)
     * [new exports.Input(bindings)](#new_Input_new)
-    * [.reverseBindings](#Input+reverseBindings) ⇒ <code>object</code>
+    * [.bindings](#Input+bindings)
+    * [.reverseBindings](#Input+reverseBindings)
     * [.getInput(bind)](#Input+getInput) ⇒ <code>any</code>
     * [._setInput(key, val)](#Input+_setInput)
 
@@ -26,32 +20,47 @@ Stateful input class handler
 | --- | --- | --- |
 | bindings | <code>object</code> | An object of labels ("up", "down", "fire"), mapped to keys ("a", "Z", "$") |
 
+<a name="Input+bindings"></a>
+
+### input.bindings
+**Kind**: instance property of [<code>Input</code>](#Input)  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| bindings | <code>object</code> | An object of labels ("up", "down", "fire"), mapped to keys ("a", "Z", "$") |
+
 <a name="Input+reverseBindings"></a>
 
-### input.reverseBindings ⇒ <code>object</code>
+### input.reverseBindings
 **Kind**: instance property of [<code>Input</code>](#Input)  
-**Returns**: <code>object</code> - Returns an object that is keys mapped to labels (the reverse ofthe bindings in the constructor  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| reverseBindings | <code>object</code> | Keys mapped to labels (reverse of `.bindings`) |
+
 <a name="Input+getInput"></a>
 
 ### input.getInput(bind) ⇒ <code>any</code>
-Given a binding name, returns the current value of that input
+Returns the current value for a binding name
 
 **Kind**: instance method of [<code>Input</code>](#Input)  
-**Returns**: <code>any</code> - The value for that binding (key down or up for now)  
+**Returns**: <code>any</code> - Value for that binding  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| bind | <code>string</code> | The name of the binding to retrieve the value for |
+| bind | <code>string</code> | Name of the binding to get the value of |
 
 <a name="Input+_setInput"></a>
 
 ### input.\_setInput(key, val)
-Given a key id, sets the value to the given value
+Sets the current value for a key
 
 **Kind**: instance method of [<code>Input</code>](#Input)  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| key | <code>string</code> | The key to set the value for keyCode.key |
-| val | <code>any</code> | The value to set |
+| key | <code>string</code> | Key to set the value for `keyCode.key` |
+| val | <code>any</code> | Value to set |
 
