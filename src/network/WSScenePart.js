@@ -16,7 +16,7 @@ export class WSScenePart {
         let isServer = this._isServer = !url;
         let ws;
 
-        if(isServer) { //We're connecting to a server
+        if(isServer) { //We ARE a server
             ws = new WSWebSocket.Server({
                 port: 10016,
                 clientTracking: true
@@ -29,7 +29,7 @@ export class WSScenePart {
               throw err;
             });
         }
-        else { //We ARE a server
+        else { //We're connecting to a server
             ws = new WebSocket(url);
             ws.addEventListener("open", ()=>{
               this._connectionLoaded = true;

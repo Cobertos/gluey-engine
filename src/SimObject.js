@@ -14,8 +14,6 @@ import { _assert } from "./utils";
  * @param {function} threeCls a `THREE.Object3D` constructor (like `THREE.Mesh`)
  * @param {...function} partClss Vararg for all the other classes to mixin.
  * @returns {function} The new `SimObject` base class to inherit from.
- * @todo Some of the add() remove() functions won't work without overwriting the THREE.js prototype
- * for this stuff
  */
 export function SimObject(threeCls, ...partClss) {
   _assert(threeCls.prototype instanceof THREE.Object3D ||
