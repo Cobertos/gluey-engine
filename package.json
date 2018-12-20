@@ -1,17 +1,20 @@
 {
-  "name": "jammin-js",
+  "name": "gluey-engine",
   "author": {
-    "name": "Fucko",
-    "email": "fucko@gmail.com",
+    "name": "Peter / \"Cobertos\"",
+    "email": "me@cobertos.com",
     "url": "http://cobertos.com"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/Cobertos/gluey-engine.git"
   },
   "scripts": {
     "docs": "node -r esm docs.js",
     "test": "mocha -r esm test/*.js"
   },
-  "private": "true",
-  "version": "1.0.0",
-  "description": "Gmae.",
+  "version": "0.0.1",
+  "description": "A configurable, THREE.js based, modern javascript game engine.",
   "dependencies": {
     "aggregation": "^1.2.2",
     "moment": "^2.22.1",
