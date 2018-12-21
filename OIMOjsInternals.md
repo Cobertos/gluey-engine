@@ -1,4 +1,4 @@
-This doesn't cover any THREEjs integration (as webworkers cant use this anyway)
+This file is my notes from my deep dive into OIMOjs. Useful when working with the physics system.
 
 ### Types of Rigidbodies
 
