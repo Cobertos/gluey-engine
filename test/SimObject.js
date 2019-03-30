@@ -1,22 +1,22 @@
 import { expect } from "chai";
 import { spy } from "sinon";
-import * as THREE from "three";
+import * as PIXI from "pixi.js";
 import { SimObject } from "../src/SimObject";
 import { BasePart } from "../src/BasePart";
 
 describe("SimObject", ()=>{
-    it("is a function that builds THREE.Object3D classes", ()=>{
+    it("is a function that builds PIXI.DisplayObject classes", ()=>{
         //assert
         expect(typeof SimObject === "function").to.be.ok;
-        let cls = SimObject(THREE.Object3D);
+        let cls = SimObject(PIXI.DisplayObject);
         expect(typeof cls === "function").to.be.ok;
-        expect(cls.prototype).to.be.an.instanceof(THREE.Object3D);
+        expect(cls.prototype).to.be.an.instanceof(PIXI.DisplayObject);
     });
-    it("must be passed a THREE.Object3D", ()=>{
+    it("must be passed a PIXI.DisplayObject", ()=>{
         //assert
         expect(()=>   SimObject(class A {})   ).to.throw(Error);
-        expect(SimObject(THREE.Object3D)).to.be.ok;
-        expect(SimObject(THREE.Mesh)).to.be.ok;
+        expect(SimObject(PIXI.Sprite)).to.be.ok;
+        expect(SimObject(PIXI.AnimatedSprite)).to.be.ok;
     });
     it("has an onConstructed() hook run after constructor() for parts", (done)=>{
         //arrange

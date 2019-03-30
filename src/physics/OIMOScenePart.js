@@ -6,8 +6,21 @@ import { PromiseProxy } from "../utils";
 /**Wrapper around `OIMOWorker` and all it's communication
  */
 export class OIMOScenePart {
-    initializer() {
-        this._objects = {};
+    mixin() {
+        return class OIMOScenePartMixin {
+            get supportsPhysics(){ return true; }
+            initializer(){
+                this.physics = new OIMOScenePart(this);
+                this._loadPromise = this._loadPromise ? 
+                    this._loadPromise.then(this.physics.load()) :
+                    this.physics.load();
+                this.physics.load().then(()=>console.log("Physics scene loaded")):
+            }
+        }
+    }
+
+    constructor() {
+        this._physicsObjects = {};
 
         /// #if NODEJS
         this._worker = new Worker("./dist/server/OimoWorker.js");
@@ -17,17 +30,10 @@ export class OIMOScenePart {
         this._worker.postMessage = this._worker.webkitPostMessage || this._worker.postMessage;
         this._worker.onmessage = this.onMessage.bind(this);
 
-        this._workerLoaded = false;
+        //Not loaded until the worker posts a message to us
         this._workerPromise = new PromiseProxy();
 
         this._lastFPS = 0;
-
-        this._loadInterval = setInterval(()=>{
-            //We post messages until the worker loads, because we can't reliably
-            //determine otherwise when it does which breaks things at the start
-            //of the level otherwise
-            this._worker.postMessage({ command: "loadbeat" });
-        }, 100);
     }
 
     /**@returns {Promise} Promise when the Worker has finished loading
@@ -44,10 +50,8 @@ export class OIMOScenePart {
         /// #if BROWSER
         msg = msg.data;
         /// #endif
-        if(msg.loadbeat) {
-            this._workerLoaded = true;
+        if(msg.loaded) {
             this._workerPromise.externalResolve();
-            clearInterval(this._loadInterval);
             return;
         }
 
@@ -55,8 +59,8 @@ export class OIMOScenePart {
 
         // Get fresh data from the worker
         let bodyData = msg.data;
-        Object.keys(this._objects).forEach((key,i)=>{
-            let o = this._objects[key];
+        Object.keys(this._physicsObjects).forEach((key,i)=>{
+            let o = this._physicsObjects[key];
             let offset = i*14;
             if(bodyData[offset] !== 1){ //not asleep || static
                 o.position.fromArray( bodyData, offset+1);
@@ -74,29 +78,31 @@ export class OIMOScenePart {
 
     onRegister(obj) {
         if(obj.supportsPhysics) {
-            this.phys_add(obj.getPhysicsParams(), obj);
+            this.add(obj.physics.properties, obj);
         }
     }
 
     onUnregister(obj) {
         if(obj.supportsPhysics) {
-            this.phys_del(obj.getPhysicsParams());
+            this.del(obj.physics.properties);
         }
     }
 
     /**Adds a physics object with the given params, optionally taking
      * a THREE.js object to keep up to date with the physics object.
      * @param {object} physObj Object with physics parameters
-     * @param {THREE.Object3D} [threeObj=undefined] THREE.js object to update
      * (normally the object that generated the physObj)
      */
-    phys_add(physObj, threeObj=undefined) {
-        this._objects[physObj.id] = threeObj;
+    add(physObj) {
+        this._physicsObjects[physObj.id] = physObj;
+        obj.position = obj.position.toArray();
+        obj.quaternion = obj.quaternion.toArray();
+        obj.linearVelocity = obj.linearVelocity.toArray();
+        obj.angularVelocity = obj.angularVelocity.toArray();
 
         this._worker.postMessage({
             command: "add",
-            id: physObj.id,
-            data: physObj
+            obj: physObj
         });
     }
 
@@ -108,7 +114,7 @@ export class OIMOScenePart {
      * @param {boolean} [setVel=false] Conditionally set linear velocity
      * @param {boolean} [setAngVel=false] Conditionally set angular velocity
      */
-    phys_set(physObj, setPos=true, setRot=true, setVel=false, setAngVel=false) {
+    set(physObj, setPos=true, setRot=true, setVel=false, setAngVel=false) {
         this._worker.postMessage({
             command: "set",
             obj: physObj,
@@ -119,38 +125,38 @@ export class OIMOScenePart {
     /**Deletes the given physics object from the simulation
      * @param {object} physObj The physics object to delete (.id)
      */
-    phys_del(physObj) {
+    del(physObj) {
         this._worker.postMessage({
             command: "del",
             id: physObj.id
         });
-        delete this._objects[physObj.id];
+        delete this._physicsObjects[physObj.id];
     }
 
     /**Applies impulse
      * @param {object} physObj The physics object to apply to (.id)
-     * @param {Number[]} pos Three component array, the position to apply to
-     * @param {Number[]} force Three component array, the force to apply, will be scaled by 1/m
+     * @param {THREE.Vector3} pos The position to apply the impulse too
+     * @param {THREE.Vector3} force The force to apply, will be scaled by 1/m
      */
-    phys_impulse(physObj, pos, force) {
+    impulse(physObj, pos, force) {
         this._worker.postMessage({
             command: "impulse",
             id: physObj.id,
-            pos,
-            force
+            position: physObj.position,
+            force: physObj.force.toArray()
         });
     }
 
     /**Gets the currect fps
      * @returns {number} The last FPS received from the OIMOWorker
      */
-    get phys_fps() {
+    get fps() {
         return this._lastFPS;
     }
 
     /**Starts the simulation
      */
-    phys_play() {
+    play() {
         this._worker.postMessage({
             command: "play"
         });
@@ -158,7 +164,7 @@ export class OIMOScenePart {
 
     /**Pauses the simulation
      */
-    phys_pause() {
+    pause() {
         this._worker.postMessage({
             command: "pause"
         });

@@ -64,9 +64,6 @@ self.onmessage = function(msg) {
             new Vec3().fromArray(msg.pos),
             new Vec3().fromArray(msg.force));
     }
-    else if(msg.command === "loadbeat") {
-        self.postMessage({ loadbeat: true });
-    }
     else if(msg.command === "play" && simulationInterval === undefined) {
         simulationInterval = setInterval( step, dt*1000 );
     }
@@ -109,3 +106,5 @@ function step() {
         data:bodyData
     });
 }
+
+self.postMessage({ loaded: true });

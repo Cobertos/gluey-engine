@@ -6,8 +6,8 @@
     "url": "http://cobertos.com"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/Cobertos/gluey-engine.git"
+    "type": "git",
+    "url": "https://github.com/Cobertos/gluey-engine.git"
   },
   "scripts": {
     "docs": "node -r esm docs.js",
@@ -19,6 +19,7 @@
     "aggregation": "^1.2.2",
     "moment": "^2.22.1",
     "oimo": "^1.0.9",
+    "pixi.js": "^4.8.7",
     "stats.js": "^0.17.0",
     "three": "^0.96.0",
     "wolfy87-eventemitter": "^5.2.5",

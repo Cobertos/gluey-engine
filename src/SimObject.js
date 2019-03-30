@@ -1,36 +1,39 @@
-import * as THREE from "three";
+import * as PIXI from "pixi.js";
 import aggregation from "aggregation";
 import { BasePart } from "./BasePart";
 import { _assert } from "./utils";
 
-/**Function that returns `SimObjectInheritor`, the main class in JamminJS.
- * Inherits from a THREE.js class and then multiple `BasePart` inheriting
- * classes to add functionality like physics or networking.
+/**Function that returns `SimObjectInheritor`, the main class in Gluey.
+ * Inherits from a renderer class (PIXI.js) and then multiple
+ * `BasePart` inheriting classes to add functionality like physics or networking.
  * @example
- * class MyObjectType extends SimObject(THREE.Mesh,PhysicsPart) {
- *    //This class would be a THREE.Mesh and would participate in
+ * class MyObjectType extends SimObject(PIXI.Sprite,PhysicsPart) {
+ *    //This class would be a PIXI.Sprite and would participate in
  *    //the physics system if your SimScene supports that
  * }
- * @param {function} threeCls a `THREE.Object3D` constructor (like `THREE.Mesh`)
+ * @param {function} pixiCls a renderer class
  * @param {...function} partClss Vararg for all the other classes to mixin.
  * @returns {function} The new `SimObject` base class to inherit from.
  */
-export function SimObject(threeCls, ...partClss) {
-  _assert(threeCls.prototype instanceof THREE.Object3D ||
-          threeCls.prototype === THREE.Object3D.prototype, "Must inherit from THREE.Object3D or descendant");
+export function SimObject(pixiCls, ...partClss) {
+  _assert(pixiCls.prototype instanceof PIXI.DisplayObject ||
+          pixiCls.prototype === PIXI.DisplayObject.prototype, "Must inherit from THREE.Object3D or descendant");
   partClss = [DefaultPart, ...partClss];
 
+  const mixins = partClss.map((partCls)=>partCls.mixin());
   /**The actual class created by `SimObject()`, inherits from
-   * `aggregation(threeCls, ...partClss)` and the prototype chain
-   * will include the `THREE.Object3D` (everything else is just mixed in)
-   * @extends THREE.Object3D
+   * `aggregation(rootCls, ...partClss)` and the prototype chain
+   * will include the `PIXI.DisplayObject` (everything else is just mixed in)
+   * @extends PIXI.DisplayObject
    */
-  class SimObjectInheritor extends aggregation(threeCls, ...partClss) {
-    /**@param {...any} Vararg of args to pass to THREE.js constructor
+  class SimObjectInheritor extends aggregation(rootCls, ...mixins) {
+    /**@param {...any} Vararg of args to pass to PIXI.js constructor
      */
     constructor(...args){
       super(...args);
-      this.partClss = partClss;
+      this.parts = partClss.map((partCls)=>{
+        return new partCls(partCls.getPartArguments(args))
+      });
       setTimeout(this.finishConstruction.bind(this)); //The next javascript frame, call this
     }
 
@@ -74,19 +77,15 @@ export function SimObject(threeCls, ...partClss) {
      * @param {any[]} args Arguments to call with
      */
     _partApply(func, args) {
-      //Fail fast if we don't have it mixed in b/c it should be in here from aggregation
-      if(typeof this[func] !== "function") {
-        return;
-      }
-      partClss.forEach((partCls)=>{
-        if(func in partCls.prototype) {
-          partCls.prototype[func].apply(this, args);
+      this.parts.forEach((part)=>{
+        if(func in part) {
+          part[func].apply(part, args);
         }
       });
     }
 
     /**@override
-     * @param {THREE.Object3D|SimObject} ...objs Objects to add
+     * @param {PIXI.DisplayObject|SimObject} ...objs Objects to add
      * @returns {undefined} Nothing
      */
     add(...objs) {
@@ -105,7 +104,7 @@ export function SimObject(threeCls, ...partClss) {
     }
 
     /**@override
-     * @param {THREE.Object3D|SimObject} ...objs Objects
+     * @param {PIXI.DisplayObject|SimObject} ...objs Objects
      * @returns {undefined} Nothing
      * @todo You might have issues removing things added in add()
      * if you are removing them in the same order (see comment in code)

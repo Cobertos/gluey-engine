@@ -9,32 +9,39 @@ const isServer = typeof window === "undefined";
  * @todo If we need UDP and in browser listen servers, consider using
  * https://peerjs.com/, which uses WebRTC data channels for UDP
  */
-export class WSScenePart {
-    initializer(url){
-        this._connectionLoaded = false;
+export class WSScenePart extends BasePart {
+  static mixin(){
+    return class WSScenePartMixin {
+      /**@prop {boolean} supportsNetworking*/
+      get supportsNetworking() { return true; }
+
+      initializer(...args) {
+        this.networking = new WSScenePart(this, ...WSScenePart.getPartArguments(args));
+      }
+    }
+  }
+
+    
+
+    constructor(simObject, url) {
+        super(simObject);
+        this._isServer = !url;
         this._connectionPromise = new PromiseProxy();
-        let isServer = this._isServer = !url;
         let ws;
 
-        if(isServer) { //We ARE a server
+        if(this.isServer) { //We ARE a server
             ws = new WSWebSocket.Server({
                 port: 10016,
                 clientTracking: true
             });
-            ws.on("listening", ()=>{
-              this._connectionLoaded = true;
-              this._connectionPromise.externalResolve();
-            });
+            ws.on("listening", this._connectionPromise.externalResolve);
             ws.on("error", (err)=>{
               throw err;
             });
         }
         else { //We're connecting to a server
             ws = new WebSocket(url);
-            ws.addEventListener("open", ()=>{
-              this._connectionLoaded = true;
-              this._connectionPromise.externalResolve();
-            });
+            ws.addEventListener("open", this._connectionPromise.externalResolve);
             ws.addEventListener("error", (err)=>{
               throw err;
             });
@@ -44,6 +51,9 @@ export class WSScenePart {
 
     get isServer() {
         return this._isServer;
+    }
+    get isClient() {
+        return !!this.isServer;
     }
 
     async load() {
